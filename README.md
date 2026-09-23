@@ -1,113 +1,148 @@
-# Terraform Modules to setup APIGEE X with Private Service Connect (PSC) and External HTTPS Load Balancer
+# Apigee X + PSC + External HTTPS Load Balancer Terraform
 
-## Description
-This Terraform module has been compiled using public modules offered by Google Cloud Foundation Fabric and Terraform Modules for APIGEE.
-Execution of these modules will result in creating an APIGEE X Organization within the Google Project selected.
-The following actions will be taken care as a part of the execution:
+This repository contains Terraform modules for deploying an Apigee X environment in Google Cloud with Private Service Connect (PSC), networking, and external HTTPS load balancing. The implementation is built on top of Google Cloud Foundation Fabric modules and wraps the required Apigee-specific components into a reusable structure.
 
-* Provisioning of a paid organization (Pay-as-you-go) of APIGEE X
-* Creation of a Single Region APIGEE Runtime Instance
-* Creation and configuration of Customer Managed Encryption Keys
-* Configuration of Environments, Environment Groups, and their attachments
-* Creating PSC Endpoints to establish connection between customer VPC and Apigee X
-* Creation of an External Load Balancer and exposing the APIGEE Services to the Internet.
+## What this repo deploys
 
-## Prerequisites
-* A Google Project has been created in the Organization's Google Cloud
-* Required APIGEE License mapping has been done for this project
-* An IAM Account (User) / Service Account with preferred privileges has been provisioned. 
-* It is recommended that this IAM User / Service Account is given the *Project Owner* role for the current project, if not must have atleast these roles assigned
-        <ul>
-            <li>roles/resourcemanager.projectIamAdmin</li>
-            <li>roles/apigee.admin</li>
-            <li>roles/cloudkms.admin</li>
-            <li>roles/compute.admin</li>
-            <li>roles/iam.serviceAccountAdmin</li>
-            <li>roles/iam.serviceAccountUser</li>
-            <li>roles/iam.serviceAccountKeyAdmin</li>
-            <li>roles/servicenetworking.networksAdmin</li>
-        </ul>
-* If an External HTTPS Load Balancer has to be provisioned with a self managed SSL certificate, the public and private key files ar to be made available.
-* If a predefined Static IP address has to be used for the External HTTPS Load Balancer, the IP address has to be configured.
+This repository contains multiple Terraform configuration patterns for provisioning Apigee X and its supporting networking components. These are not required to run together at the same time; they represent different provisioning use cases depending on the target environment and deployment objective.
 
-## Tools and Softwares
-On the host machine where the Terraform modules are to be executed, we need to have these below installed and initialized
-* gcloud SDK
-* Terraform version >= 1.1.0
-* Any Text Editor
+Examples include:
 
-## Inputs
-Please refer to the `variables.tf` file for the definition and details of the required variables.
+- Apigee X organization and runtime instance
+- Environment and environment group configuration
+- Customer-managed encryption key setup
+- VPC and private connectivity for PSC
+- External HTTPS load balancer fronting Apigee services
+- Staging or auxiliary load balancer deployments
 
-## Execution Instructions
+## Repository layout
 
-### Folder Structure
-```bash
+```text
 .
-├── environments
-│   ├── nonprod
-│   │   ├── backend.hcl
-│   │   └── gpo-internal-data.tfvars
-│   ├── prod
-│   │   ├── backend.hcl
-│   │   └── gpo-prod.tfvars
-│   └── staging
-│       ├── backend.hcl
-│       └── gpo-staging.tfvars
-├── iac
-│   ├── apigee-x-xlb-psc
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── versions.tf
-│   ├── provider-modules
-│   │   ├── apigee-x-core
-│   │   │   ├── main.tf
-│   │   │   ├── outputs.tf
-│   │   │   └── variables.tf
-│   │   └── nb-psc-l7xlb
-│   │       ├── main.tf
-│   │       ├── output.tf
-│   │       └── variables.tf
-│   └── staging-loadbalancer
-│       ├── main.tf
-│       ├── outputs.tf
-│       ├── variables.tf
-│       └── versions.tf
-└── README.md
+├── README.md
+├── LICENSE
+├── .gitignore
+├── environments/
+│   ├── demo/
+│   ├── nonprod/
+│   ├── prod/
+│   ├── trial/
+│   └── apigee-sandbox-509411/
+│       ├── terraform.tfvars
+│       ├── x-nb-psc-xlb.tfvars
+│       ├── apigee-x-nb-mig.tfvars
+│       ├── external-loadbalancer-psc-backend.tfvars
+│       └── staging-loadbalancer.tfvars
+├── iac/
+│   ├── provider-modules/
+│   │   ├── apigee-x-core/
+│   │   ├── apigee-x-client-vm/
+│   │   ├── apigee-x-bridge-mig/
+│   │   ├── mig-l7xlb/
+│   │   ├── nb-psc-l7xlb/
+│   │   ├── network-data/
+│   │   └── ...
+│   └── src/
+│       ├── x-nb-psc-xlb/
+│       │   └── .terraform/
+│       ├── apigee-x-nb-mig/
+│       │   └── .terraform/
+│       ├── external-loadbalancer-psc-backend/
+│       │   └── .terraform/
+│       ├── staging-loadbalancer/
+│       │   └── .terraform/
+│       └── ...
+└── .terraform/   # only when a root-level execution is used
 ```
 
-* While the `environments` directory has the required `.tfvars` independent for `nonprod` and `prod`, the actual scripts are underneath the `src` directory. `provider-modules` are the community modules imported.
+The active deployment modules in the current repo are primarily located under `iac/src/`. Each module directory is executed independently and typically contains its own local `.terraform/` working directory after `terraform init`.
 
-* Under the `src`,  There are 2 folders:
-    * `apigee-x-xlb-psc`
-    * `staging-loadbalancer`
-* To provision the entire Apigee X ecosystem, use `apigee-x-xlb-psc` with relevant configuration from `environments`
-* To provision an additional loadbalancer, which we did for `staging` using `staging-loadbalancer` module.
+## Prerequisites
 
-| Action | Command |
-| ------ | ------- |
-| Format the Terraform files | `terraform fmt` |
-|Initiate and Download the provider modules. This requires network access to the <a href="https://github.com/GoogleCloudPlatform/cloud-foundation-fabric" title="Google Cloud Foundation Fabric Git Hub repository">Google Cloud Foundation Fabric Git Hub repository</a>. | `terraform init` |
-| After initial run, if needed, use flag -upgrade | `terraform init -upgrade` |
-| In case there is a backend.hcl in use, use flag -reconfigure | `terraform init -upgrade -reconfigure -backend-config=../../environments/nonprod/backend.hcl` |
-| Validate the script | `terraform validate` |
-| Generate a terraform plan. | `terraform plan` |
-| If you are not using the naming convention as "terraform.tfvars", please provide the variable file name. -out flag is optional, if included, the plan is saved to a .tfplan file which can be used during apply.| `terraform plan -var-file="example.tfvars" -out "name.tfplan"` |
-| To create or modify the deployment. | `terraform apply` |
-| If using a saved plan file (tfplan) | `terraform apply "name.tfplan"`|
-| In this case, we have separate tfvars, apply the specific using | `terraform apply --var-file=../../environments/nonprod/gpo-internal-data.tfvars`|
-| Additional commands that could be helpful ||
-| To show the details of the deployment | `terraform show` |
-| To show the outputs | `terraform output` |
-| To destroy all the services created using script. If not using "terraform.tfvars" include the `-var-file` flag for specifying the variable file | `terraform destroy` |
+Before running Terraform, make sure you have:
 
-## Additional Notes
-* To configure a backend for terraform state storage, please update the details in the `versions.tf`
+- A Google Cloud project created and billing enabled
+- Apigee license activation completed for the target project
+- Google Cloud SDK installed and authenticated with `gcloud auth application-default login`
+- Terraform installed, version 1.3 or newer recommended
+- An IAM principal or service account with sufficient permissions, including at least:
+  - `roles/resourcemanager.projectIamAdmin`
+  - `roles/apigee.admin`
+  - `roles/cloudkms.admin`
+  - `roles/compute.admin`
+  - `roles/iam.serviceAccountAdmin`
+  - `roles/iam.serviceAccountUser`
+  - `roles/servicenetworking.networksAdmin`
 
-## Load Balancer Certificate
-* Is currently a Google Managed Certificate provisioned for the hostnames provided in the tfvars.
-* For Staging, which is serving traffic from PROD instance, we have a separate load balancer.
+## How to deploy
 
-## Sources and References
-* <a href="https://github.com/GoogleCloudPlatform/cloud-foundation-fabric">Google Cloud Foundation Fabric</a>
-* <a href="https://github.com/apigee/terraform-modules">APIGEE Terraform Modules</a>
+Each module under `iac/src/` represents a specific provisioning scenario or configuration path. In practice, only one of these modules is initialized and deployed at a given time based on the requirement being implemented.
+
+### Conditional deployment pattern
+
+Choose the target module based on the requirement:
+
+- If you are provisioning the core Apigee environment and related project/networking foundation, use `iac/src/apigee-x-nb-mig`
+- If you are provisioning the PSC-based northbound ingress path and egress design, use `iac/src/x-nb-psc-xlb`
+- If you are creating the external HTTPS load balancer front end, use `iac/src/external-loadbalancer-psc-backend`
+- If you are configuring a staging or secondary load balancer path, use `iac/src/staging-loadbalancer`
+
+### Example workflow for a single required deployment
+
+```bash
+cd iac/src/x-nb-psc-xlb
+terraform init
+terraform plan -var-file="../../environments/apigee-sandbox-509411/x-nb-psc-xlb.tfvars" -out x-nb-psc-xlb.tfplan
+terraform apply x-nb-psc-xlb.tfplan
+```
+
+### Alternative use-case examples
+
+```bash
+cd iac/src/apigee-x-nb-mig
+terraform init
+terraform plan -var-file="../../environments/apigee-sandbox-509411/apigee-x-nb-mig.tfvars" -out apigee-x-nb-mig.tfplan
+terraform apply apigee-x-nb-mig.tfplan
+```
+
+```bash
+cd iac/src/external-loadbalancer-psc-backend
+terraform init
+terraform plan -var-file="../../environments/apigee-sandbox-509411/external-loadbalancer-psc-backend.tfvars" -out external-loadbalancer-psc-backend.tfplan
+terraform apply external-loadbalancer-psc-backend.tfplan
+```
+
+```bash
+cd iac/src/staging-loadbalancer
+terraform init
+terraform plan -var-file="../../environments/apigee-sandbox-509411/staging-loadbalancer.tfvars" -out staging-loadbalancer.tfplan
+terraform apply staging-loadbalancer.tfplan
+```
+
+### Common commands
+
+```bash
+terraform fmt
+terraform validate
+terraform show
+terraform output
+terraform destroy
+```
+
+### Deployment principle
+
+These module directories are intentionally independent. The repo supports multiple provisioning scenarios, and the correct execution is chosen conditionally based on the environment requirement at that point in time.
+
+## Notes
+
+- For production use, move environment-specific values into secure secret management or a remote backend configuration.
+- The repository includes environment-specific tfvars samples for a sandbox-oriented deployment and can be extended for nonprod, prod, or other regional setups.
+- If you are using a remote backend or Terraform Cloud, configure the backend before running `terraform init`.
+
+## References
+
+- **[Google Cloud Foundation Fabric](https://github.com/GoogleCloudPlatform/cloud-foundation-fabric)**. 
+
+- **[Apigee Terraform Modules](https://github.com/GoogleCloudPlatform/apigee-terraform-modules)**.
+
+- **[Apigee API Management](https://cloud.google.com/apigee)**.
