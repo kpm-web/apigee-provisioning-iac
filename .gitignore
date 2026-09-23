@@ -1,0 +1,45 @@
+# Terraform state and local runtime
+.terraform/
+.terraform.tfstate*
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfplan.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Local environment and sensitive files
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# OS/editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+
+# Local state directories
+local-state/
+**/local-state/
+state/
+**/state/
+
