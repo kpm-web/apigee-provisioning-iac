@@ -15,7 +15,7 @@ Examples include:
 - External HTTPS load balancer fronting Apigee services
 - Staging or auxiliary load balancer deployments
 
-## Repository layout
+## Proposed Repository layout
 
 ```text
 .
